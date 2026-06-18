@@ -1,5 +1,7 @@
 # this file could use some better docstrings ngl and better organization
-
+# Could be better: SchoolTeamCode is stable across seasons and embeds surnames
+# to resolve the initials issue. but I got it down to ~1% of duplicates
+# fine with tat
 import re
 import pandas as pd
 from data import _load_data
