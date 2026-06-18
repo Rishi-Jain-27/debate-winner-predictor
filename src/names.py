@@ -163,7 +163,7 @@ def add_ids() -> pd.DataFrame:
     # Concat them
     team_info = pd.concat([team_info_25, team_info_24], ignore_index=True)
 
-    # Apply create_canonical_key
+    # Apply smart keying
     team_info["debater_id1"] = team_info["FullName1"].apply(lambda n: smart_abbrev_keying(n, res_map))
     team_info["debater_id2"] = team_info["FullName2"].apply(lambda n: smart_abbrev_keying(n, res_map))
 
