@@ -115,3 +115,11 @@ def get_cross_season_match_rate() -> float:
     match_rate = len(intersection) / len(ids_2024) # of the 24-25 debater, what fraction reappear in 25-26
 
     return match_rate
+
+def find_collision_count(season: str) -> float:
+    # Load seasons
+    team_info = _load_data("Team_Info", season)
+    unique_canonical = len(set(pd.concat([team_info["FullName1"], team_info["FullName2"]], ignore_index=True).apply(create_canonical_key)) - {""})
+    unique_abbrev = len(set(pd.concat([team_info["FullName1"], team_info["FullName2"]], ignore_index=True).apply(key_with_abbrev)) - {""})
+    collision_count = unique_canonical - unique_abbrev
+    return (collision_count) / unique_canonical
