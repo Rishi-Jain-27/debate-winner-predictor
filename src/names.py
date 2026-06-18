@@ -30,6 +30,23 @@ def create_canonical_key(name) -> str:
 
     return canonical_key
 
+def key_with_abbrev(name) -> str:
+    # Guard against empty/just whitespace or NaN/None input
+    if pd.isna(name) or (name.strip() == ""):
+        return ""
+    
+    # Create the key
+    key = name.lower()
+    key = re.sub(r"[^\w\s]", r"", key)
+    key = key.split()
+
+    if len(key) == 1:
+        return key[0]
+    elif len(key) == 0:
+        return ""
+    else:
+        return (key[-1] + " " + key[0][0]) # last name first initial
+
 def derive_school_id(school_name) -> str:
     """
     Finds the school_id given a school name.
