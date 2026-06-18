@@ -30,6 +30,7 @@ def create_canonical_key(name) -> str:
 
     return canonical_key
 
+# this is canonical key but no sorting -- instead, return last name first initial
 def key_with_abbrev(name) -> str:
     # Guard against empty/just whitespace or NaN/None input
     if pd.isna(name) or (name.strip() == ""):
@@ -106,8 +107,8 @@ def get_cross_season_match_rate() -> float:
     team_info_24 = _load_data("Team_Info", "2024-25")
     team_info_25 = _load_data("Team_Info", "2025-26")
 
-    ids_2024 = set(pd.concat([team_info_24["FullName1"], team_info_24["FullName2"]], ignore_index=True).apply(create_canonical_key)) - {""}
-    ids_2025 = set(pd.concat([team_info_25["FullName1"], team_info_25["FullName2"]], ignore_index=True).apply(create_canonical_key)) - {""}
+    ids_2024 = set(pd.concat([team_info_24["FullName1"], team_info_24["FullName2"]], ignore_index=True).apply(key_with_abbrev)) - {""}
+    ids_2025 = set(pd.concat([team_info_25["FullName1"], team_info_25["FullName2"]], ignore_index=True).apply(key_with_abbrev)) - {""}
 
     intersection = ids_2024 & ids_2025
 
