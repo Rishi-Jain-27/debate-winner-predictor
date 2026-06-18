@@ -1,7 +1,9 @@
+# this file could use some better docstrings ngl and better organization
 
 import re
 import pandas as pd
 from data import _load_data
+import collections
 
 # --- Key algorithms --- #
 # This is the same thing as creating the debater id and returning it
@@ -50,6 +52,7 @@ def key_with_abbrev(name) -> str:
     else:
         return (key[-1] + " " + key[0][0]) # last name first initial
 
+# Abbreviation aware key helper
 def _parse_name(name):
     """
     Parses a name into its identity components, assuming first-last order
@@ -75,6 +78,51 @@ def _parse_name(name):
     lower = re.sub(r"[^\w\s]", r"", lower)
     tokens = lower.split()
     return (tokens[-1], tokens[0], len(tokens[0]) == 1)
+
+def _build_res_map(names) -> dict:
+    """
+    Builds the abbreviation-resolution map.
+
+    For every name with a FULL first name, collect it under (surname, first_initial)
+    Keep only the combos that have one full first name (ambiguous ones are dropped).
+
+    Args:
+        names: an iterable of raw name strings.
+        Missing/blank names are skipped.
+
+    Returns:
+        dict mapping (surname, initial) -> full_first_name.
+        Only unambiguous combos are included -- there is only ONE value per key.
+    """
+     
+    ambig_res_map = collections.defaultdict(set)
+    for name in names:
+        if _parse_name(name) == "":
+            continue
+        last, first, is_init = _parse_name(name)
+        if not is_init:
+            ambig_res_map[(last, first[0])].add(first)
+    
+    res_map = {}
+    for key, val_set in ambig_res_map.items():
+        if len(val_set) == 1:
+            res_map[key] = list(val_set)[0]
+    
+    return res_map
+
+def smart_abbrev_keying(name, res_map):
+    if _parse_name(name) == "":
+        return ""
+    last, first, is_init = _parse_name(name)
+
+    # if it is a single letter, look it up in rez map and expand it if found
+    # if not found, fallback to last + " " + first
+    if not is_init:
+        return (last + " " + first)
+    else:
+        if (last, first) in res_map:
+            return (last + " " + res_map[(last, first)])
+        return (last + " " + first)
 
 def derive_school_id(school_name) -> str:
     """
