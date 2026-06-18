@@ -185,7 +185,7 @@ def get_cross_season_match_rate() -> float:
     team_info_24 = _load_data("Team_Info", "2024-25")
     team_info_25 = _load_data("Team_Info", "2025-26")
 
-    pooled_names = pd.concat([team_info_24[["FullName1", "FullName2"]], team_info_25[["FullName1", "FullName2"]]])
+    pooled_names = pd.concat([team_info_24["FullName1"], team_info_24["FullName2"], team_info_25["FullName1"], team_info_25["FullName2"]])
     res_map = _build_res_map(pooled_names)
 
     ids_2024 = set(pd.concat([team_info_24["FullName1"], team_info_24["FullName2"]], ignore_index=True).apply(lambda n: smart_abbrev_keying(n, res_map))) - {""}
