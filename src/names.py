@@ -177,7 +177,7 @@ def add_ids() -> pd.DataFrame:
     # drop dups -- dups are if they match on ["SchoolTeamCode", "debater_id1", "debater_id2"]
     team_info = team_info.drop_duplicates(subset=["SchoolTeamCode", "id_first", "id_second"]) # adding "school_id" is a no-op bc SchoolTeamCode is alr there
 
-    return team_info[["SchoolTeamCode","debater_id1","debater_id2","school_id"]]
+    return team_info[["SchoolTeamCode","id_first","id_second","school_id"]]
 
 # --- Diagnostic algorithms --- #
 def get_cross_season_match_rate() -> float:
