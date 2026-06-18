@@ -170,8 +170,12 @@ def add_ids() -> pd.DataFrame:
     # Derive school id
     team_info["school_id"] = team_info["SchoolName"].apply(derive_school_id)
 
-    # drop dups -- dups are if they match on ["SchoolTeamCode", "debater_id1", "debater_id2", "school_id"]
-    team_info = team_info.drop_duplicates(subset=["SchoolTeamCode", "debater_id1", "debater_id2", "school_id"])
+    # Create order independent columns to prevent order from mattering (kills more dupes)
+    team_info["id_first"] = team_info[["debater_id1", "debater_id2"]].min(axis=1) # alphabetical first
+    team_info["id_second"] = team_info[["debater_id1", "debater_id2"]].max(axis=1) # alphabetical second
+
+    # drop dups -- dups are if they match on ["SchoolTeamCode", "debater_id1", "debater_id2"]
+    team_info = team_info.drop_duplicates(subset=["SchoolTeamCode", "id_first", "id_second"]) # adding "school_id" is a no-op bc SchoolTeamCode is alr there
 
     return team_info[["SchoolTeamCode","debater_id1","debater_id2","school_id"]]
 
