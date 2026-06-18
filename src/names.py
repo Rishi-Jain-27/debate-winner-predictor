@@ -154,15 +154,18 @@ def add_ids() -> pd.DataFrame:
         and school_id in team_info across both seasons
     """
     # Load seasons
-    team_info_1 = _load_data("Team_Info", "2024-25")
-    team_info_2 = _load_data("Team_Info", "2025-26")
+    team_info_24 = _load_data("Team_Info", "2024-25")
+    team_info_25 = _load_data("Team_Info", "2025-26")
+
+    pooled_names = pd.concat([team_info_24["FullName1"], team_info_24["FullName2"], team_info_25["FullName1"], team_info_25["FullName2"]])
+    res_map = _build_res_map(pooled_names)
 
     # Concat them
-    team_info = pd.concat([team_info_2, team_info_1], ignore_index=True)
+    team_info = pd.concat([team_info_25, team_info_24], ignore_index=True)
 
     # Apply create_canonical_key
-    team_info["debater_id1"] = team_info["FullName1"].apply(create_canonical_key)
-    team_info["debater_id2"] = team_info["FullName2"].apply(create_canonical_key)
+    team_info["debater_id1"] = team_info["FullName1"].apply(lambda n: smart_abbrev_keying(n, res_map))
+    team_info["debater_id2"] = team_info["FullName2"].apply(lambda n: smart_abbrev_keying(n, res_map))
 
     # Derive school id
     team_info["school_id"] = team_info["SchoolName"].apply(derive_school_id)
@@ -191,6 +194,7 @@ def get_cross_season_match_rate() -> float:
     ids_2024 = set(pd.concat([team_info_24["FullName1"], team_info_24["FullName2"]], ignore_index=True).apply(lambda n: smart_abbrev_keying(n, res_map))) - {""}
     ids_2025 = set(pd.concat([team_info_25["FullName1"], team_info_25["FullName2"]], ignore_index=True).apply(lambda n: smart_abbrev_keying(n, res_map))) - {""}
 
+    # running diagnostics show that smart_abbrev_keying is MUCH better
     # ids_2024 = set(pd.concat([team_info_24["FullName1"], team_info_24["FullName2"]], ignore_index=True).apply(key_with_abbrev)) - {""}
     # ids_2025 = set(pd.concat([team_info_25["FullName1"], team_info_25["FullName2"]], ignore_index=True).apply(key_with_abbrev)) - {""}
 
