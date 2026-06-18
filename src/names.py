@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from data import _load_data
 
+# --- Key algorithms --- #
 # This is the same thing as creating the debater id and returning it
 # bc debater id == that debater's canonical key
 def create_canonical_key(name) -> str:
@@ -31,6 +32,7 @@ def create_canonical_key(name) -> str:
     return canonical_key
 
 # this is canonical key but no sorting -- instead, return last name first initial
+# this is just an experimental function
 def key_with_abbrev(name) -> str:
     # Guard against empty/just whitespace or NaN/None input
     if pd.isna(name) or (name.strip() == ""):
@@ -47,6 +49,32 @@ def key_with_abbrev(name) -> str:
         return ""
     else:
         return (key[-1] + " " + key[0][0]) # last name first initial
+
+def _parse_name(name):
+    """
+    Parses a name into its identity components, assuming first-last order
+    (as in Team_Info's FullName columns).
+
+    Args:
+        name: str of "{first} [middle ...] {last}", or NaN/None/""/whitespace.
+
+    Returns:
+        (surname, first_token, is_initial) on success:
+            surname (str): the last token in lowercase.
+            first_token (str): the first token in lowercased (full name or a lone initial).
+            is_initial (bool): True if first_token is a single character (e.g. "o").
+        "" if the name is missing/blank.
+
+    Middle tokens are ignored (only first and last are used).
+    Single-token names (e.g. "Madonna") return that token as BOTH surname and first_token, with is_initial False.
+    """
+    
+    if pd.isna(name) or (name.strip() == ""):
+        return ""
+    lower = name.lower()
+    lower = re.sub(r"[^\w\s]", r"", lower)
+    tokens = lower.split()
+    return (tokens[-1], tokens[0], len(tokens[0]) == 1)
 
 def derive_school_id(school_name) -> str:
     """
@@ -68,6 +96,7 @@ def derive_school_id(school_name) -> str:
     school_id = " ".join(school_id)
     return school_id
 
+# --- Attach keys algorithm(s) --- #
 def add_ids() -> pd.DataFrame:
     """
     Adds debater_id1, debater_id2, and school_id to Team_Info
@@ -95,6 +124,7 @@ def add_ids() -> pd.DataFrame:
 
     return team_info[["SchoolTeamCode","debater_id1","debater_id2","school_id"]]
 
+# --- Diagnostic algorithms --- #
 def get_cross_season_match_rate() -> float:
     """
     Gets the cross-season match rate.
