@@ -1,7 +1,10 @@
 
 import re
 import pandas as pd
+from data import _load_data
 
+# This is the same thing as creating the debater id and returning it
+# bc debater id == that debater's canonical key
 def create_canonical_key(name) -> str:
     """
     Creates the canonical key for a name.
@@ -26,4 +29,71 @@ def create_canonical_key(name) -> str:
     canonical_key = " ".join(canonical_key)
 
     return canonical_key
+
+def derive_school_id(school_name) -> str:
+    """
+    Finds the school_id given a school name.
+
+    Args:
+        school_name: str, NaN, or None.
     
+    Returns:
+        school_id: str of the school's id.
+    """
+
+    # Guard against empty/just whitespace or NaN/None input
+    if pd.isna(school_name) or (school_name.strip() == ""):
+        return ""
+
+    school_id = school_name.lower()
+    school_id = school_id.split()
+    school_id = " ".join(school_id)
+    return school_id
+
+def add_ids() -> pd.DataFrame:
+    """
+    Adds debater_id1, debater_id2, and school_id to Team_Info
+
+    Returns:
+        pd.DataFrame: contans SchoolTeamCode, debater_id1, debater_id2,
+        and school_id in team_info across both seasons
+    """
+    # Load seasons
+    team_info_1 = _load_data("Team_Info", "2024-25")
+    team_info_2 = _load_data("Team_Info", "2025-26")
+
+    # Concat them
+    team_info = pd.concat([team_info_2, team_info_1], ignore_index=True)
+
+    # Apply create_canonical_key
+    team_info["debater_id1"] = team_info["FullName1"].apply(create_canonical_key)
+    team_info["debater_id2"] = team_info["FullName2"].apply(create_canonical_key)
+
+    # Derive school id
+    team_info["school_id"] = team_info["SchoolName"].apply(derive_school_id)
+
+    # drop dups -- dups are if they match on ["SchoolTeamCode", "debater_id1", "debater_id2", "school_id"]
+    team_info = team_info.drop_duplicates(subset=["SchoolTeamCode", "debater_id1", "debater_id2", "school_id"])
+
+    return team_info[["SchoolTeamCode","debater_id1","debater_id2","school_id"]]
+
+def get_cross_season_match_rate() -> float:
+    """
+    Gets the cross-season match rate.
+
+    Returns:
+        match_rate (float): the cross-season match rate
+        representing what fraction of 24-25 debaters come back in 25-26
+    """
+    # Load seasons
+    team_info_24 = _load_data("Team_Info", "2024-25")
+    team_info_25 = _load_data("Team_Info", "2025-26")
+
+    ids_2024 = set(pd.concat([team_info_24["FullName1"], team_info_24["FullName2"]], ignore_index=True).apply(create_canonical_key)) - {""}
+    ids_2025 = set(pd.concat([team_info_25["FullName1"], team_info_25["FullName2"]], ignore_index=True).apply(create_canonical_key)) - {""}
+
+    intersection = ids_2024 & ids_2025
+
+    match_rate = len(intersection) / len(ids_2024) # of the 24-25 debater, what fraction reappear in 25-26
+
+    return match_rate
