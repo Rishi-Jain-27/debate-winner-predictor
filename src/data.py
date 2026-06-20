@@ -48,8 +48,9 @@ def _clean_speaks(speaks: pd.DataFrame)  -> tuple[pd.DataFrame, int]:
 def _find_team_speaks_totals(clean_speaks: pd.DataFrame) -> pd.DataFrame:
     # team total = sum of 2 debaters per judge then avg across judges
     # collapses panels and duplicate name-variant rows
-    per_judge = clean_speaks.groupby(["RoundId", "Side", "Judge"], as_index=False)["Points"].sum()
-    totals = per_judge.groupby(["RoundId", "Side"], as_index=False)["Points"].mean()
+    # include season bc we dont want to combine speaks across seasons
+    per_judge = clean_speaks.groupby(["season", "RoundId", "Side", "Judge"], as_index=False)["Points"].sum()
+    totals = per_judge.groupby(["season", "RoundId", "Side"], as_index=False)["Points"].mean()
     totals = totals.rename(columns={"Points": "team_speaks_total"})
     return totals
 
@@ -109,9 +110,9 @@ def load_rounds() -> pd.DataFrame:
 
     aff_total = totals[totals["Side"] == "Aff"].rename(columns={"team_speaks_total": "aff_speaks"})
     neg_total = totals[totals["Side"] == "Neg"].rename(columns={"team_speaks_total": "neg_speaks"})
-
-    rounds = rounds.merge(aff_total[["RoundId", "aff_speaks"]], on="RoundId", how="left")
-    rounds = rounds.merge(neg_total[["RoundId", "neg_speaks"]], on="RoundId", how="left")
+    
+    rounds = rounds.merge(aff_total[["season", "RoundId", "aff_speaks"]], on=["season", "RoundId"], how="left")
+    rounds = rounds.merge(neg_total[["season", "RoundId", "neg_speaks"]], on=["season", "RoundId"], how="left")
 
     return rounds
 
@@ -145,12 +146,12 @@ def load_debater_log() -> pd.DataFrame:
     speaks = pd.concat([_load_data("SpeakerPoints", s) for s in SEASONS], ignore_index=True)
     clean, _ = _clean_speaks(speaks)
 
-    cols_for_speaks = ["RoundId","Side", "Debater"]
+    cols_for_speaks = ["season","RoundId","Side", "Debater"]
     debater_points = clean.groupby(cols_for_speaks, as_index=False)["Points"].mean()
     debater_points = debater_points.rename(columns={"Points": "own_points", "Side": "side"}) #type: ignore -- pylance is dumb
 
-    # merge speaks data with round data
-    log = debater_points.merge(per_side, on=["RoundId", "side"], how="left")
+    # merge speaks data with round data (key on season+RoundId: RoundId repeats across seasons)
+    log = debater_points.merge(per_side, on=["season","RoundId", "side"], how="left")
     return log
 
 def report_cleaning(rounds, log, drop_counts) -> None:
