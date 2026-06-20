@@ -2,13 +2,30 @@
 This file takes the cleaned data (see data.py, not perfect but good enough) and creates the Dataset
 it:
 - adds a debater_id onto the log
-This file (Phase 3) turns the cleaned data into a leak-safe PyTorch Dataset:
+This file turns the cleaned data into a PyTorch Dataset:
 - uses a global round key bc round_id repeats across seasons
 - creates a chronological order, our dataset has no dates so this is approximate
 - attaches previous elo
 - builds a list of each debater's earlier rounds
 - finds yields per round as the aff_seq, neg_seq and masks, static, and
 judge features (features.py), the win label and speaker total targets
+
+So one example from the dataset is:
+aff_seq (the aff team debaters histories, two lists)
+aff_mask (masks over future rounds)
+neg_seq
+neg_mask
+static (5 aff static features, 5 neg static features)
+(each static feature: debater seen mean is avearge of prior rounds across this sides two debaters
+debater seen min is the prior rounds of the weaker partner
+side is new is 1 if both debaters have 0 prior rounds
+school_win_rate is the school's total win rate shrunk to 0.5 prior
+school_confidence is how much to trust this school)
+judge (rounds seen,avg, aff winrate, lneinecy -- avg speaks given global mean/10, judge seen 1 if any panel judge seen before)
+label is aff win or not
+speak targets is aff/neg speak totals/speaks scale
+speaker mask is 1 if target is present in the data. 0 if not
+
 """
 
 import re
@@ -33,7 +50,7 @@ JUDGE_DIM = 4 # judge features
 POINTS_SCALE = 30.0
 ELO_SCALE = 200.0
 SPEAKS_SCALE = 60.0 # speaks is total among partners
-RECENCY_SCALE = 50.0
+RECENCY_SCALE = 10.0 # divides ln(1 + rounds elapsed) --- ~log1p(#rounds)≈9.9 so recency lands in ~[0,1]
 SEEN_SCALE = 5.0 # divides ln(1 + rounds seen)
 
 # stored token features — recency is added per-query in _history
@@ -218,7 +235,8 @@ class DebateDataset(Dataset):
         sel = toks[start:cut]
         if len(sel) == 0:
             return out, mask
-        recency = ((order - orders[start:cut]) / RECENCY_SCALE).reshape(-1, 1)
+        # log-scaled rounds-elapsed so big cross-season gaps don't blow up the magnitude [0,1]
+        recency = (np.log1p(order - orders[start:cut]) / RECENCY_SCALE).reshape(-1, 1)
         feat = np.concatenate([sel, recency], axis=1)            # [m, TOKEN_DIM]
         m = feat.shape[0]
         out[MAX_HISTORY - m:] = feat
