@@ -224,7 +224,8 @@ class DebateDataset(Dataset):
         return len(self.examples)
 
     def _history(self, debater_id: str, order: int):
-        # this debater's tokens with global_order < order, last max history and padded at the front
+        # this debater's tokens with global_order < order, last max history; reals FIRST then padding
+        # (back-padding so pack_padded_sequence in the encoder lines up: it expects reals at the front)
         out = np.zeros((MAX_HISTORY, TOKEN_DIM), dtype=np.float32)
         mask = np.zeros(MAX_HISTORY, dtype=np.float32)
         if debater_id not in self.deb_tokens:
@@ -239,8 +240,8 @@ class DebateDataset(Dataset):
         recency = (np.log1p(order - orders[start:cut]) / RECENCY_SCALE).reshape(-1, 1)
         feat = np.concatenate([sel, recency], axis=1)            # [m, TOKEN_DIM]
         m = feat.shape[0]
-        out[MAX_HISTORY - m:] = feat
-        mask[MAX_HISTORY - m:] = 1.0
+        out[:m] = feat
+        mask[:m] = 1.0
         return out, mask
 
     def _team(self, ids: list, order: int):
